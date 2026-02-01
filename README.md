@@ -22,5 +22,5 @@ My custom Wayland desktop environment running on **Fedora 43**. This setup featu
 
 ## ⚙️ Key Specs
 - **Window Ratio:** 0.5 default column width.
-- **Theme:** Orange/Yellow accents.
+- **Theme:** Yellow accents.
 - **Font:** JetBrains Mono Nerd Font.

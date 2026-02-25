@@ -12,7 +12,24 @@ CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 MAGENTA='\033[0;35m'
+RED='\033[0;31m'
 NC='\033[0m'
+
+# --- Banner ---
+show_banner() {
+    clear
+    echo -e "${YELLOW}"
+    cat << "EOF"
+  _      ______ __  __  ____  _   _ 
+ | |    |  ____|  \/  |/ __ \| \ | |
+ | |    | |__  | \  / | |  | |  \| |
+ | |    |  __| | |\/| | |  | | . ` |
+ | |____| |____| |  | | |__| | |\  |
+ |______|______|_|  |_|\____/|_| \_|
+      --- LEMON NIRI INSTALLER ---
+EOF
+    echo -e "${NC}"
+}
 
 # --- Dry Run Logic ---
 DRY_RUN=false
@@ -26,11 +43,6 @@ run_cmd() {
     fi
 }
 
-confirm() {
-    read -p "$(echo -e "${YELLOW}Install $1? [y/N]: ${NC}")" choice
-    [[ "$choice" =~ ^[Yy]$ ]] && return 0 || return 1
-}
-
 # --- 1. Distro Detection ---
 if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -39,38 +51,59 @@ else
     OS="unknown"
 fi
 
-# --- 2. Pre-flight Checks & AUR Helper Detection ---
+show_banner
+
+# --- 2. Pre-flight (Dependencies & TUI Tool) ---
 echo -e "${CYAN}Performing pre-flight checks...${NC}"
 case $OS in
     fedora)
-        run_cmd sudo dnf install -y git dnf-plugins-core curl
+        run_cmd sudo dnf install -y git dnf-plugins-core curl newt
         ;;
     arch)
-        run_cmd sudo pacman -S --needed --noconfirm git base-devel curl
+        run_cmd sudo pacman -S --needed --noconfirm git base-devel curl libnewt
         
-        # Smart AUR Helper Detection
-        if command -v yay &> /dev/null; then
-            AUR_HELPER="yay"
-        elif command -v paru &> /dev/null; then
-            AUR_HELPER="paru"
-        elif command -v aur &> /dev/null; then
-            AUR_HELPER="aur sync -si"
-        else
-            echo -e "${CYAN}No AUR helper found. Installing yay as fallback...${NC}"
+        if ! command -v yay &> /dev/null && ! command -v paru &> /dev/null && ! command -v aur &> /dev/null; then
+            echo -e "${CYAN}No AUR helper found. Installing yay...${NC}"
             run_cmd git clone https://aur.archlinux.org/yay.git /tmp/yay
             if [ "$DRY_RUN" = false ]; then
                 cd /tmp/yay && makepkg -si --noconfirm && cd - && rm -rf /tmp/yay
             fi
-            AUR_HELPER="yay"
         fi
-        echo -e "${GREEN}Using AUR Helper: $AUR_HELPER${NC}"
+        
+        # Determine helper for later
+        if command -v yay &> /dev/null; then AUR_HELPER="yay";
+        elif command -v paru &> /dev/null; then AUR_HELPER="paru";
+        elif command -v aur &> /dev/null; then AUR_HELPER="aur sync -si";
+        else AUR_HELPER="yay"; fi
         ;;
 esac
 
-# --- 3. Interactive Component Selection ---
+# --- 3. TUI Component Selection ---
+if [ "$DRY_RUN" = true ]; then
+    CHOICES="Niri Noctalia Cursor Fuzzel Alacritty Fastfetch GTK4 Zsh Wallpapers Symlinks"
+else
+    CHOICES=$(whiptail --title "Lemon Niri Installer" --checklist \
+    "Use Space to select/deselect, Enter to confirm:" 20 78 12 \
+    "Niri" "Scroll-stacking compositor" ON \
+    "Noctalia" "Status bar and shell" ON \
+    "Cursor" "Bibata Modern Ice Theme" ON \
+    "Fuzzel" "Application Launcher" ON \
+    "Alacritty" "Terminal Emulator" ON \
+    "Fastfetch" "Chafa & Lemon Logos" ON \
+    "GTK4" "Required Libraries" ON \
+    "Zsh" "Zsh + Oh My Zsh + Theme" ON \
+    "Wallpapers" "Wallpaper Bank (~1GB)" OFF \
+    "Symlinks" "Apply Lemon Dotfiles" ON 3>&1 1>&2 2>&3)
+fi
+
+# Exit if user cancels
+[ $? -ne 0 ] && echo "Installation cancelled." && exit 1
+
+# --- 4. Execution Logic ---
 
 # Niri
-if confirm "Niri (Window Manager)"; then
+if [[ $CHOICES == *"Niri"* ]]; then
+    echo -e "${CYAN}Installing Niri...${NC}"
     case $OS in
         fedora) run_cmd sudo dnf copr enable -y yalter/niri-git && run_cmd sudo dnf install -y niri ;;
         arch)   run_cmd $AUR_HELPER --needed --noconfirm niri-git ;;
@@ -78,7 +111,8 @@ if confirm "Niri (Window Manager)"; then
 fi
 
 # Noctalia
-if confirm "Noctalia (Status Bar/Shell)"; then
+if [[ $CHOICES == *"Noctalia"* ]]; then
+    echo -e "${CYAN}Installing Noctalia...${NC}"
     case $OS in
         fedora) 
             run_cmd sudo dnf install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
@@ -89,7 +123,8 @@ if confirm "Noctalia (Status Bar/Shell)"; then
 fi
 
 # Cursor
-if confirm "Bibata Modern Ice Cursor"; then
+if [[ $CHOICES == *"Cursor"* ]]; then
+    echo -e "${CYAN}Installing Bibata Cursor...${NC}"
     case $OS in
         fedora) run_cmd sudo dnf install -y bibata-cursor-themes ;;
         arch)   run_cmd $AUR_HELPER --needed --noconfirm bibata-cursor-theme-bin ;;
@@ -97,21 +132,23 @@ if confirm "Bibata Modern Ice Cursor"; then
 fi
 
 # Standard Packages
-PACKAGES=()
-confirm "Fuzzel (Launcher)" && PACKAGES+=("fuzzel")
-confirm "Alacritty (Terminal)" && PACKAGES+=("alacritty")
-confirm "Fastfetch & Chafa (Logos)" && PACKAGES+=("fastfetch" "chafa")
-confirm "GTK4 Libraries" && PACKAGES+=("gtk4")
+PKG_LIST=()
+[[ $CHOICES == *"Fuzzel"* ]] && PKG_LIST+=("fuzzel")
+[[ $CHOICES == *"Alacritty"* ]] && PKG_LIST+=("alacritty")
+[[ $CHOICES == *"Fastfetch"* ]] && PKG_LIST+=("fastfetch" "chafa")
+[[ $CHOICES == *"GTK4"* ]] && PKG_LIST+=("gtk4")
 
-if [ ${#PACKAGES[@]} -ne 0 ]; then
+if [ ${#PKG_LIST[@]} -ne 0 ]; then
+    echo -e "${CYAN}Installing selected packages...${NC}"
     case $OS in
-        fedora) run_cmd sudo dnf install -y "${PACKAGES[@]}" ;;
-        arch)   run_cmd sudo pacman -S --needed --noconfirm "${PACKAGES[@]}" ;;
+        fedora) run_cmd sudo dnf install -y "${PKG_LIST[@]}" ;;
+        arch)   run_cmd sudo pacman -S --needed --noconfirm "${PKG_LIST[@]}" ;;
     esac
 fi
 
-# --- 4. Zsh Setup ---
-if confirm "Zsh + Oh My Zsh (and set as default shell)"; then
+# Zsh Setup
+if [[ $CHOICES == *"Zsh"* ]]; then
+    echo -e "${CYAN}Configuring Zsh Shell...${NC}"
     case $OS in
         fedora) run_cmd sudo dnf install -y zsh ;;
         arch)   run_cmd sudo pacman -S --needed --noconfirm zsh ;;
@@ -125,23 +162,20 @@ if confirm "Zsh + Oh My Zsh (and set as default shell)"; then
     [ ! -d "${ZSH_CUSTOM}/plugins/zsh-autosuggestions" ] && run_cmd git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM}/plugins/zsh-autosuggestions
     [ ! -d "${ZSH_CUSTOM}/plugins/zsh-syntax-highlighting" ] && run_cmd git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM}/plugins/zsh-syntax-highlighting
     
-    echo -e "${CYAN}Changing default shell to Zsh...${NC}"
     run_cmd sudo chsh -s $(which zsh) $USER
 fi
 
-# --- 5. Assets & Wallpapers ---
-if confirm "Download Wallpaper-Bank (~1GB)"; then
+# Wallpapers
+if [[ $CHOICES == *"Wallpapers"* ]]; then
+    echo -e "${CYAN}Cloning Wallpapers...${NC}"
     run_cmd mkdir -p "$HOME/Pictures"
     [ ! -d "$WALLPAPER_DIR" ] && run_cmd git clone --depth 1 "$WALLPAPER_URL" "$WALLPAPER_DIR"
 fi
 
-# --- 6. Repository & Symlinking ---
-if [ ! -d "$DOTFILES_DIR" ]; then
-    echo -e "${CYAN}Cloning lemon niri installer...${NC}"
-    run_cmd git clone "$REPO_URL" "$DOTFILES_DIR"
-fi
-
-if confirm "Apply Dotfile Symlinks (Niri, Alacritty, Fuzzel, Zshrc)"; then
+# Dotfiles & Symlinks
+if [[ $CHOICES == *"Symlinks"* ]]; then
+    echo -e "${CYAN}Applying Dotfiles...${NC}"
+    [ ! -d "$DOTFILES_DIR" ] && run_cmd git clone "$REPO_URL" "$DOTFILES_DIR"
     [ "$DRY_RUN" = false ] && mkdir -p "$HOME/.config" "$BACKUP_DIR"
 
     if [ -f "$DOTFILES_DIR/zshrc" ]; then
@@ -156,9 +190,9 @@ if confirm "Apply Dotfile Symlinks (Niri, Alacritty, Fuzzel, Zshrc)"; then
     done
 fi
 
-# --- 7. Final Checks ---
+# --- 5. Final Notice ---
 if systemd-detect-virt | grep -q "oracle"; then
-    echo -e "\n${YELLOW}VirtualBox detected. Ensure 3D Acceleration is ON in VM settings.${NC}"
+    echo -e "\n${MAGENTA}VirtualBox detected: Ensure 3D Acceleration is ON!${NC}"
 fi
 
 echo -e "\n${GREEN}Lemon Niri setup complete! Reboot or Logout To apply changes.${NC}"

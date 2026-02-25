@@ -168,21 +168,6 @@ This ensures a smooth experience while respecting existing Arch workflows.
 
 ---
 
-## 🏔 Arch Linux & AUR Helpers
-
-The installer is designed to be **AUR-helper agnostic**.
-
-It will prioritize existing helpers such as:
-
-- `yay`
-- `paru`
-- `aurutils`
-
-If none of these are detected, the installer will automatically install yay to complete the environment setup.
-
-This ensures a smooth experience while respecting existing Arch workflows.
-
----
 
 ## ✔ Special Package Handling
 

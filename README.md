@@ -135,7 +135,7 @@ An interactive installer script is included.
 ## Dry Run
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/aeroslayys/niri-dotfiles/main/install.sh) --dry-run
+bash <(curl -sSL https://gist.githubusercontent.com/aeroslayys/48301affed815e0ed09d492c48f3322a/raw) --dry-run
 ```
 
 ---
@@ -143,7 +143,7 @@ bash <(curl -sSL https://raw.githubusercontent.com/aeroslayys/niri-dotfiles/main
 ## Execute Installer
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/aeroslayys/niri-dotfiles/main/install.sh)
+bash <(curl -sSL https://gist.githubusercontent.com/aeroslayys/48301affed815e0ed09d492c48f3322a/raw) 
 ```
 
 ---

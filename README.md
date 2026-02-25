@@ -124,9 +124,23 @@ bash <(curl -sSL https://gist.githubusercontent.com/aeroslayys/48301affed815e0ed
 ✔ Fully interactive  
 ✔ Safe backups  
 ✔ `--dry-run` support  
-✔ Handles AUR helpers automatically  
 ✔ Optional wallpaper installation (~1GB)  
-✔ Optional Gruvbox theme injection  
+
+---
+
+## 🏔 Arch Linux & AUR Helpers
+
+The installer is designed to be **AUR-helper agnostic**.
+
+It will prioritize existing helpers such as:
+
+- `yay`
+- `paru`
+- `aurutils`
+
+If none of these are detected, the installer will automatically install a `yay` helper to complete the environment setup.
+
+This ensures a smooth experience while respecting existing Arch workflows.
 
 ---
 

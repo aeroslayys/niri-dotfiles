@@ -56,15 +56,15 @@ sudo pacman -S --needed niri alacritty fastfetch chafa git
 
 ### 2️⃣ Install Noctalia (Status Bar)
 
-Noctalia must be built from source.
-
-Clone and build:
+Arch:
 
 ```bash
-git clone https://github.com/pwn-pht/noctalia
-cd noctalia
-cargo build --release
-sudo cp target/release/noctalia /usr/local/bin/
+paru -S noctalia-shell
+```
+Fedora:
+```bash
+sudo dnf install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release
+sudo dnf install noctalia-shell
 ```
 
 #### Fedora Build Dependencies

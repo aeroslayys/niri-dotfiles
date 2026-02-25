@@ -157,7 +157,6 @@ You can choose to install:
 - Fastfetch & Chafa
 - Zsh
 - Wallpaper Bank
-- Gruvbox Theme Injection
 
 Nothing installs without confirmation.
 
